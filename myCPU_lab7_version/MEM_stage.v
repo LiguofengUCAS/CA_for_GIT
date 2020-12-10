@@ -1,31 +1,35 @@
 `include "mycpu.h"
 
 module mem_stage(
-    input                          clk           ,
-    input                          reset         ,
+    input                          clk            ,
+    input                          reset          ,
     //allowin
-    input                          ws_allowin    ,
-    output                         ms_allowin    ,
+    input                          ws_allowin     ,
+    output                         ms_allowin     ,
     //from es
     input                          es_to_ms_valid,
-    input  [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus  ,
+    input  [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus   ,
     //to ws
-    output                         ms_to_ws_valid,
-    output [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus  ,
+    output                         ms_to_ws_valid ,
+    output [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus   ,
     //from data-sram
-    input  [31                 :0] data_sram_rdata
+    input  [31                 :0] data_sram_rdata,
+    //foward data path
+    output [`FW_DATA         -1:0] ms_to_ds_fw
 );
 
 reg         ms_valid;
 wire        ms_ready_go;
 
 reg [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus_r;
+wire        dest_valid;
 wire        ms_res_from_mem;
 wire        ms_gr_we;
 wire [ 4:0] ms_dest;
 wire [31:0] ms_alu_result;
 wire [31:0] ms_pc;
-assign {ms_res_from_mem,  //70:70
+assign {dest_valid     ,  //71:71
+        ms_res_from_mem,  //70:70
         ms_gr_we       ,  //69:69
         ms_dest        ,  //68:64
         ms_alu_result  ,  //63:32
@@ -35,7 +39,8 @@ assign {ms_res_from_mem,  //70:70
 wire [31:0] mem_result;
 wire [31:0] ms_final_result;
 
-assign ms_to_ws_bus = {ms_gr_we       ,  //69:69
+assign ms_to_ws_bus = {dest_valid     ,  //70:70
+                       ms_gr_we       ,  //69:69
                        ms_dest        ,  //68:64
                        ms_final_result,  //63:32
                        ms_pc             //31:0
@@ -53,7 +58,7 @@ always @(posedge clk) begin
     end
 
     if (es_to_ms_valid && ms_allowin) begin
-        es_to_ms_bus_r  = es_to_ms_bus;
+        es_to_ms_bus_r <= es_to_ms_bus;     //check
     end
 end
 
@@ -61,5 +66,7 @@ assign mem_result = data_sram_rdata;
 
 assign ms_final_result = ms_res_from_mem ? mem_result
                                          : ms_alu_result;
+
+assign ms_to_ds_fw = {ms_valid & dest_valid, ms_dest, ms_final_result};
 
 endmodule
