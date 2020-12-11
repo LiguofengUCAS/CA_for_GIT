@@ -29,11 +29,15 @@ wire [ 4:0] ms_dest;
 wire [31:0] ms_alu_result;
 wire [31:0] ms_pc;
 
+wire [31:0] ms_rt_value;
+
 wire        inst_lw;
 wire        inst_lb;
 wire        inst_lbu;
 wire        inst_lh;
 wire        inst_lhu;
+wire        inst_lwl;
+wire        inst_lwr;
 
 wire [ 3:0] ms_addr_low;
 
@@ -45,8 +49,13 @@ wire [31:0] lb_result;
 wire [31:0] lbu_result;
 wire [31:0] lh_result;
 wire [31:0] lhu_result;
+wire [31:0] lwl_result;
+wire [31:0] lwr_result;
 
-assign {inst_lhu       ,  //76:76
+assign {ms_rt_value    ,  //110:79
+        inst_lwl       ,  //78:78
+        inst_lwr       ,  //77:77
+        inst_lhu       ,  //76:76
         inst_lh        ,  //75:75
         inst_lbu       ,  //74:74
         inst_lb        ,  //73:73
@@ -103,11 +112,23 @@ assign lbu_result = {24'b0, lb_lbu_origin_result};
 assign lh_result  = {{16{lh_lhu_origin_result[15]}}, lh_lhu_origin_result};
 assign lhu_result = {16'b0, lh_lhu_origin_result};
 
+assign lwl_result = ms_addr_low[0] ? {data_sram_rdata[7:0],  ms_rt_value[23:0]} :
+                    ms_addr_low[1] ? {data_sram_rdata[15:0], ms_rt_value[15:0]} :
+                    ms_addr_low[2] ? {data_sram_rdata[23:0], ms_rt_value[ 7:0]} :
+                  /*ms_addr_low[3]*/  data_sram_rdata      ;
+
+assign lwr_result = ms_addr_low[0] ?  data_sram_rdata :
+                    ms_addr_low[1] ? {ms_rt_value[31:24], data_sram_rdata[31: 8]} :
+                    ms_addr_low[2] ? {ms_rt_value[31:16], data_sram_rdata[31:16]} :
+                  /*ms_addr_low[3]*/ {ms_rt_value[31: 8], data_sram_rdata[31:24]} ;
+
 assign mem_result = inst_lw  ? lw_result :
                     inst_lb  ? lb_result :
                     inst_lbu ? lbu_result:
                     inst_lh  ? lh_result :
                     inst_lhu ? lhu_result:
+                    inst_lwl ? lwl_result:
+                    inst_lwr ? lwr_result:
                                data_sram_rdata;
 
 assign ms_final_result = ms_res_from_mem ? mem_result

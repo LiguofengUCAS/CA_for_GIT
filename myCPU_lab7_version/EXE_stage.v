@@ -52,8 +52,21 @@ wire        inst_lhu;
 wire        inst_sw;
 wire        inst_sb;
 wire        inst_sh;
+wire        inst_lwl;
+wire        inst_lwr;
+wire        inst_swl;
+wire        inst_swr;
 
 wire [ 3:0] es_addr_low;
+
+wire        swl_0;
+wire        swl_1;
+wire        swl_2;
+wire        swl_3;
+wire        swr_0;
+wire        swr_1;
+wire        swr_2;
+wire        swr_3;
 
 wire [31:0] mult_src1;
 wire [31:0] mult_src2;
@@ -154,7 +167,11 @@ wire [ 1:0] HI_LO_mv;
 wire [31:0] es_result;
 
 
-assign {inst_sw        ,  //152:152
+assign {inst_swl       ,  //156:156
+        inst_swr       ,  //155:155
+        inst_lwl       ,  //154:154
+        inst_lwr       ,  //153:153
+        inst_sw        ,  //152:152
         inst_sb        ,  //151:151
         inst_sh        ,  //150:150
         inst_lhu       ,  //149:149
@@ -194,7 +211,10 @@ assign es_result = (HI_LO_mv[1]) ? HI_out :
 wire        es_res_from_mem;
 
 assign es_res_from_mem = es_load_op;
-assign es_to_ms_bus = {inst_lhu       ,  //76:76
+assign es_to_ms_bus = {es_rt_value    ,  //110:79
+                       inst_lwl       ,  //78:78
+                       inst_lwr       ,  //77:77
+                       inst_lhu       ,  //76:76
                        inst_lh        ,  //75:75
                        inst_lbu       ,  //74:74
                        inst_lb        ,  //73:73
@@ -251,16 +271,44 @@ assign es_addr_low[1] = (es_alu_result[1:0] == 2'b01);
 assign es_addr_low[2] = (es_alu_result[1:0] == 2'b10);
 assign es_addr_low[3] = (es_alu_result[1:0] == 2'b11);
 
+assign swl_0 = inst_swl && (es_addr_low[0]);
+assign swl_1 = inst_swl && (es_addr_low[1]);
+assign swl_2 = inst_swl && (es_addr_low[2]);
+assign swl_3 = inst_swl && (es_addr_low[3]);
+
+assign swr_0 = inst_swr && (es_addr_low[0]);
+assign swr_1 = inst_swr && (es_addr_low[1]);
+assign swr_2 = inst_swr && (es_addr_low[2]);
+assign swr_3 = inst_swr && (es_addr_low[3]);
+
 assign data_sram_en    = 1'b1;
 
 assign data_sram_wen   = es_mem_we && es_valid ? 
-                        (inst_sw ? 4'hf : es_addr_low) : 4'h0;
-                                              
+                        (inst_sw ?  4'hf : 
+                         inst_sb ?  es_addr_low :
+                         swl_0   ?  4'h1        :
+                         swl_1   ?  4'h3        :
+                         swl_2   ?  4'h7        :
+                         swl_3   ?  4'hf        :
+                         swr_0   ?  4'hf        :
+                         swr_1   ?  4'he        :
+                         swr_2   ?  4'hc        :
+                         swr_3   ?  4'h8        :
+                      /* inst_sh */ {{2{es_addr_low[3] | es_addr_low[2]}}, 
+                                    {2{es_addr_low[1] | es_addr_low[0]}}}) : 4'h0;
+
 assign data_sram_addr  = es_alu_result;
 
-assign data_sram_wdata = inst_sb ? {4{es_rt_value[ 7:0]}} :
-                         inst_sh ? {2{es_rt_value[15:0]}} :
-                        /*inst_sw*/ es_rt_value           ;
+assign data_sram_wdata = inst_sb ? {     4{es_rt_value[ 7:0]}}  :
+                         inst_sh ? {     2{es_rt_value[15:0]}}  :
+                         swl_0   ? {     4{es_rt_value[31:24]}} :
+                         swl_1   ? {     2{es_rt_value[31:16]}} :
+                         swl_2   ? {8'h00, es_rt_value[31:8]}   :
+                         swr_1   ? {es_rt_value[23:0], 8'h00}   :
+                         swr_2   ? {     2{es_rt_value[15: 0]}} :
+                         swr_3   ? {     4{es_rt_value[ 7: 0]}} :
+        /*inst_sw | swl_3 | swr_0*/        es_rt_value          ;
+                         
 
 assign es_to_ds_fw = {es_load_op, es_valid & dest_valid, es_dest, es_result};
 
