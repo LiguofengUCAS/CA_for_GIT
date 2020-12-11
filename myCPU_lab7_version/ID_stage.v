@@ -161,7 +161,8 @@ assign condition_jump = inst_beq  || inst_bne  || inst_bgez   || inst_bgtz ||
                         inst_blez || inst_bltz || inst_bltzal || inst_bgezal;
 
 assign br_bus       = {br_taken,br_target};
-assign load_op      = inst_lw;      //check
+assign load_op      = inst_lw || inst_lb || inst_lbu || inst_lh ||
+                      inst_lhu;
 
 assign mult_op[1] = inst_multu ? 1'b1 : 1'b0;
 assign mult_op[0] = inst_mult  ? 1'b1 : 1'b0;
@@ -173,7 +174,12 @@ assign HI_LO_wen = {HI_wen,LO_wen};
 assign HI_LO_mv[1] = inst_mfhi;
 assign HI_LO_mv[0] = inst_mflo;
 
-assign ds_to_es_bus = {HI_LO_mv    ,  //144:143
+assign ds_to_es_bus = {inst_lhu    ,  //149:149
+                       inst_lh     ,  //148:148
+                       inst_lbu    ,  //147:147
+                       inst_lb     ,  //146:146
+                       inst_lw     ,  //145:145
+                       HI_LO_mv    ,  //144:143
                        mult_op     ,  //142:141
                        div_op      ,  //140:139
                        HI_LO_wen   ,  //138:137
@@ -316,9 +322,10 @@ assign inst_sh     = op_d[6'h29];
 assign inst_swl    = op_d[6'h2a];
 assign inst_swr    = op_d[6'h2e];
 
-assign alu_op[ 0] = inst_addu | inst_addiu | inst_lw   | inst_sw |
-                    inst_jal  | inst_add   | inst_addi | inst_bltzal |
-                    inst_jalr | inst_bgezal;
+assign alu_op[ 0] = inst_addu | inst_addiu  | inst_lw   | inst_sw     |
+                    inst_jal  | inst_add    | inst_addi | inst_bltzal |
+                    inst_jalr | inst_bgezal | inst_lb   | inst_lbu    |
+                    inst_lh   | inst_lhu;
 assign alu_op[ 1] = inst_subu | inst_sub;
 assign alu_op[ 2] = inst_slt  | inst_slti;
 assign alu_op[ 3] = inst_sltu | inst_sltiu;
@@ -335,13 +342,16 @@ assign src1_is_sa   = inst_sll   | inst_srl | inst_sra;
 assign src1_is_pc   = inst_jal   | inst_bgezal | inst_bltzal | inst_jalr;
 assign src2_is_imm  = inst_addiu | inst_lui  | inst_lw    | inst_sw   |
                       inst_addi  | inst_slti | inst_sltiu | inst_andi |
-                      inst_ori   | inst_xori ;
+                      inst_ori   | inst_xori | inst_lb    | inst_lbu  |
+                      inst_lh    | inst_lhu;
 assign src2_is_8    = inst_jal   | inst_bgezal | inst_bltzal | inst_jalr;
-assign res_from_mem = inst_lw;
+assign res_from_mem = inst_lw | inst_lb | inst_lbu | inst_lh |
+                      inst_lhu;
 assign dst_is_r31   = inst_jal | inst_bltzal | inst_bgezal;
 assign dst_is_rt    = inst_addiu | inst_lui   | inst_lw   | inst_addi |
                       inst_slti  | inst_sltiu | inst_andi | inst_ori  |
-                      inst_xori  ;
+                      inst_xori  | inst_lb    | inst_lbu  | inst_lh   |
+                      inst_lhu;
 assign gr_we        = ~inst_sw & ~inst_beq  & ~inst_bne  & ~inst_jr 
                     & ~inst_j  & ~inst_bgez & ~inst_bgtz & ~inst_blez
                     & ~inst_bltz;

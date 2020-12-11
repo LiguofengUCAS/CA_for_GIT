@@ -44,6 +44,12 @@ wire [31:0] es_rs_value   ;
 wire [31:0] es_rt_value   ;
 wire [31:0] es_pc         ;
 
+wire        inst_lw;
+wire        inst_lb;
+wire        inst_lbu;
+wire        inst_lh;
+wire        inst_lhu;
+
 wire [31:0] mult_src1;
 wire [31:0] mult_src2;
 wire [63:0] mult_result;
@@ -143,7 +149,12 @@ wire [ 1:0] HI_LO_mv;
 wire [31:0] es_result;
 
 
-assign {HI_LO_mv       ,  //144:143
+assign {inst_lhu       ,  //149:149
+        inst_lh        ,  //148:148
+        inst_lbu       ,  //147:147
+        inst_lb        ,  //146:146
+        inst_lw        ,  //145:145
+        HI_LO_mv       ,  //144:143
         mult_op        ,  //142:141
         div_op         ,  //140:139
         HI_wen         ,  //138:138
@@ -175,7 +186,12 @@ assign es_result = (HI_LO_mv[1]) ? HI_out :
 wire        es_res_from_mem;
 
 assign es_res_from_mem = es_load_op;
-assign es_to_ms_bus = {dest_valid     ,  //71:71
+assign es_to_ms_bus = {inst_lhu       ,  //76:76
+                       inst_lh        ,  //75:75
+                       inst_lbu       ,  //74:74
+                       inst_lb        ,  //73:73
+                       inst_lw        ,  //72:72
+                       dest_valid     ,  //71:71
                        es_res_from_mem,  //70:70
                        es_gr_we       ,  //69:69
                        es_dest        ,  //68:64
@@ -183,7 +199,7 @@ assign es_to_ms_bus = {dest_valid     ,  //71:71
                        es_pc             //31:0
                       };
 
-//assign es_ready_go    = 1'b1;
+
 assign es_allowin     = !es_valid || es_ready_go && ms_allowin;
 assign es_to_ms_valid =  es_valid && es_ready_go;
 always @(posedge clk) begin
@@ -208,7 +224,7 @@ assign es_alu_src1 = es_src1_is_sa  ? {27'b0, es_imm[10:6]} :
 assign es_alu_src2 = (es_src2_is_imm && !logic_op)? {{16{es_imm[15]}}, es_imm[15:0]} : 
                      (es_src2_is_imm &&  logic_op)? {{16{0}}         , es_imm[15:0]} :
                       es_src2_is_8                ?   32'd8                          :
-                                      es_rt_value;
+                                                      es_rt_value;
 
 assign mult_src1 = es_rs_value;
 assign mult_src2 = es_rt_value;

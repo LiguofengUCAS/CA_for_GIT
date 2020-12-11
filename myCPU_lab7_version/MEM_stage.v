@@ -28,7 +28,30 @@ wire        ms_gr_we;
 wire [ 4:0] ms_dest;
 wire [31:0] ms_alu_result;
 wire [31:0] ms_pc;
-assign {dest_valid     ,  //71:71
+
+wire        inst_lw;
+wire        inst_lb;
+wire        inst_lbu;
+wire        inst_lh;
+wire        inst_lhu;
+
+wire [ 3:0] ms_addr_low;
+
+wire [ 7:0] lb_lbu_origin_result;
+wire [15:0] lh_lhu_origin_result;
+
+wire [31:0] lw_result;
+wire [31:0] lb_result;
+wire [31:0] lbu_result;
+wire [31:0] lh_result;
+wire [31:0] lhu_result;
+
+assign {inst_lhu       ,  //76:76
+        inst_lh        ,  //75:75
+        inst_lbu       ,  //74:74
+        inst_lb        ,  //73:73
+        inst_lw        ,  //72:72
+        dest_valid     ,  //71:71
         ms_res_from_mem,  //70:70
         ms_gr_we       ,  //69:69
         ms_dest        ,  //68:64
@@ -62,7 +85,30 @@ always @(posedge clk) begin
     end
 end
 
-assign mem_result = data_sram_rdata;
+assign ms_addr_low[0] = (ms_alu_result[1:0] == 2'b00);
+assign ms_addr_low[1] = (ms_alu_result[1:0] == 2'b01);
+assign ms_addr_low[2] = (ms_alu_result[1:0] == 2'b10);
+assign ms_addr_low[3] = (ms_alu_result[1:0] == 2'b11);
+
+assign lb_lbu_origin_result = ms_addr_low[0] ? data_sram_rdata[ 7:0] :
+                              ms_addr_low[1] ? data_sram_rdata[15:8] :
+                              ms_addr_low[2] ? data_sram_rdata[23:16]:
+                          /*ms_addr_low[3]*/   data_sram_rdata[31:24];
+
+assign lh_lhu_origin_result = (ms_addr_low[3] || ms_addr_low[2]) ? data_sram_rdata[31:16] :
+                            /*ms_addr_low[1] || ms_addr_low[0]*/   data_sram_rdata[15: 0] ;
+assign lw_result  = data_sram_rdata;
+assign lb_result  = {{24{lb_lbu_origin_result[ 7]}}, lb_lbu_origin_result};
+assign lbu_result = {24'b0, lb_lbu_origin_result};
+assign lh_result  = {{16{lh_lhu_origin_result[15]}}, lh_lhu_origin_result};
+assign lhu_result = {16'b0, lh_lhu_origin_result};
+
+assign mem_result = inst_lw  ? lw_result :
+                    inst_lb  ? lb_result :
+                    inst_lbu ? lbu_result:
+                    inst_lh  ? lh_result :
+                    inst_lhu ? lhu_result:
+                               data_sram_rdata;
 
 assign ms_final_result = ms_res_from_mem ? mem_result
                                          : ms_alu_result;
