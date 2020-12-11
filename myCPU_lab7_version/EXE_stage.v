@@ -49,6 +49,11 @@ wire        inst_lb;
 wire        inst_lbu;
 wire        inst_lh;
 wire        inst_lhu;
+wire        inst_sw;
+wire        inst_sb;
+wire        inst_sh;
+
+wire [ 3:0] es_addr_low;
 
 wire [31:0] mult_src1;
 wire [31:0] mult_src2;
@@ -149,7 +154,10 @@ wire [ 1:0] HI_LO_mv;
 wire [31:0] es_result;
 
 
-assign {inst_lhu       ,  //149:149
+assign {inst_sw        ,  //152:152
+        inst_sb        ,  //151:151
+        inst_sh        ,  //150:150
+        inst_lhu       ,  //149:149
         inst_lh        ,  //148:148
         inst_lbu       ,  //147:147
         inst_lb        ,  //146:146
@@ -238,10 +246,21 @@ alu u_alu(
     .alu_result (es_alu_result)
     );
 
+assign es_addr_low[0] = (es_alu_result[1:0] == 2'b00);
+assign es_addr_low[1] = (es_alu_result[1:0] == 2'b01);
+assign es_addr_low[2] = (es_alu_result[1:0] == 2'b10);
+assign es_addr_low[3] = (es_alu_result[1:0] == 2'b11);
+
 assign data_sram_en    = 1'b1;
-assign data_sram_wen   = es_mem_we&&es_valid ? 4'hf : 4'h0;
+
+assign data_sram_wen   = es_mem_we && es_valid ? 
+                        (inst_sw ? 4'hf : es_addr_low) : 4'h0;
+                                              
 assign data_sram_addr  = es_alu_result;
-assign data_sram_wdata = es_rt_value;
+
+assign data_sram_wdata = inst_sb ? {4{es_rt_value[ 7:0]}} :
+                         inst_sh ? {2{es_rt_value[15:0]}} :
+                        /*inst_sw*/ es_rt_value           ;
 
 assign es_to_ds_fw = {es_load_op, es_valid & dest_valid, es_dest, es_result};
 
