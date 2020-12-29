@@ -11,11 +11,16 @@ module if_stage(
     output                         fs_to_ds_valid ,
     output [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus   ,
     // inst sram interface
-    output        inst_sram_en   ,
-    output [ 3:0] inst_sram_wen  ,
-    output [31:0] inst_sram_addr ,
-    output [31:0] inst_sram_wdata,
-    input  [31:0] inst_sram_rdata
+    output        inst_sram_en                    ,
+    output [ 3:0] inst_sram_wen                   ,
+    output [31:0] inst_sram_addr                  ,
+    output [31:0] inst_sram_wdata                 ,
+    input  [31:0] inst_sram_rdata                 ,
+    //flush
+    input                          ex_flush       ,
+    input                          ws_ex          ,
+    //exception return addr from ws
+    input  [`WS_TO_FS_BUS_EX -1:0] ex_return
 );
 
 reg         fs_valid;
@@ -34,6 +39,12 @@ wire [31:0] fs_inst;
 reg  [31:0] fs_pc;
 assign fs_to_ds_bus = {fs_inst ,
                        fs_pc   };
+wire        eret_flush;
+wire [31:0] epc;
+
+assign {eret_flush, epc} = ex_return;
+//assign ex_return = {eret_flush, epc};  in ws
+
 
 // pre-IF stage
 assign to_fs_valid  = ~reset;
@@ -43,9 +54,12 @@ assign nextpc       = br_taken ? br_target : seq_pc;
 // IF stage
 assign fs_ready_go    = 1'b1;
 assign fs_allowin     = !fs_valid || fs_ready_go && ds_allowin;
-assign fs_to_ds_valid =  fs_valid && fs_ready_go;
+assign fs_to_ds_valid =  fs_valid && fs_ready_go && !ex_flush;
 always @(posedge clk) begin
     if (reset) begin
+        fs_valid <= 1'b0;
+    end
+    else if(ex_flush) begin
         fs_valid <= 1'b0;
     end
     else if (fs_allowin) begin
@@ -54,6 +68,12 @@ always @(posedge clk) begin
 
     if (reset) begin
         fs_pc <= 32'hbfbffffc;  //trick: to make nextpc be 0xbfc00000 during reset 
+    end
+    else if(ws_ex) begin
+        fs_pc <= 32'hbfc0037c;
+    end
+    else if(eret_flush) begin
+        fs_pc <= epc - 3'h4;
     end
     else if (to_fs_valid && fs_allowin) begin
         fs_pc <= nextpc;

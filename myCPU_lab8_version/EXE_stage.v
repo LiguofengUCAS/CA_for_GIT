@@ -18,9 +18,12 @@ module exe_stage(
     output [31:0] data_sram_addr ,
     output [31:0] data_sram_wdata,
     //foward data path
-    output [`FW_DATA           :0] es_to_ds_fw
-    //data path for HI LO
-    //output [`HILO_WB         -1:0] hilo_to_wb,
+    output [`FW_DATA           :0] es_to_ds_fw   ,
+    //flush
+    input                          ex_flush      ,
+    //exception info
+    input                          ms_ex         ,
+    input                          ws_ex
 );
 
 reg         es_valid      ;
@@ -171,8 +174,20 @@ wire [ 2:0] cp0_choose;
 wire [ 7:0] rd_sel;
 wire        inst_eret;
 wire [ 2:0] es_ex_type;
+wire        es_bd;
 
-assign {es_ex_type     ,  //173:171
+wire        HI_wen_ex;
+wire        LO_wen_ex;
+wire        es_mem_we_ex;
+wire        es_ex;
+
+assign      es_ex        = (es_ex_type != 3'b0) ? 1'b1 : 1'b0;
+assign      HI_wen_ex    = (!es_ex && !ms_ex && !ws_ex && es_valid) ? HI_wen : 1'b0;
+assign      LO_wen_ex    = (!es_ex && !ms_ex && !ws_ex && es_valid) ? LO_wen : 1'b0;
+assign      es_mem_we_ex = (!es_ex && !ms_ex && !ws_ex && es_valid) ? es_mem_we : 1'b0;
+
+assign {es_bd          ,  //174:174
+        es_ex_type     ,  //173:171
         inst_eret      ,  //170:170
         rd_sel         ,  //169:162
         cp0_choose     ,  //161,159
@@ -222,7 +237,8 @@ assign es_result = (HI_LO_mv[1]) ? HI_out :
 wire        es_res_from_mem;
 
 assign es_res_from_mem = es_load_op;
-assign es_to_ms_bus = {es_ex_type     ,  //127:127
+assign es_to_ms_bus = {es_bd          ,  //128:128
+                       es_ex_type     ,  //127:127
                        inst_eret      ,  //124:124
                        rd_sel         ,  //123:116
                        cp0_choose     ,  //115:113
@@ -249,6 +265,9 @@ assign es_allowin     = !es_valid || es_ready_go && ms_allowin;
 assign es_to_ms_valid =  es_valid && es_ready_go;
 always @(posedge clk) begin
     if (reset) begin
+        es_valid <= 1'b0;
+    end
+    else if(ex_flush) begin
         es_valid <= 1'b0;
     end
     else if (es_allowin) begin
@@ -300,7 +319,7 @@ assign swr_3 = inst_swr && (es_addr_low[3]);
 
 assign data_sram_en    = 1'b1;
 
-assign data_sram_wen   = es_mem_we && es_valid ? 
+assign data_sram_wen   = es_mem_we_ex && es_valid ? 
                         (inst_sw ?  4'hf : 
                          inst_sb ?  es_addr_low :
                          swl_0   ?  4'h1        :
@@ -340,8 +359,8 @@ assign LO_in = (mult_op[1] || mult_op[0]) ? mult_result[31:0 ] :
 
 reg_HI_LO HI_LO(
     .clk        (clk  ) ,
-    .HI_wen     (HI_wen),
-    .LO_wen     (LO_wen),
+    .HI_wen     (HI_wen_ex),
+    .LO_wen     (LO_wen_ex),
     .HI_data_in (HI_in) ,
     .LO_data_in (LO_in) ,
     .HI_data_out(HI_out),

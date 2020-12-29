@@ -19,7 +19,9 @@ module id_stage(
     //foward data path
     input  [`FW_DATA           :0] es_to_ds_fw   ,
     input  [`FW_DATA         -1:0] ms_to_ds_fw   ,
-    input  [`FW_DATA         -1:0] ws_to_ds_fw   
+    input  [`FW_DATA         -1:0] ws_to_ds_fw   ,
+    //flush
+    input                          ex_flush
 );
 
 reg         ds_valid   ;
@@ -190,6 +192,8 @@ always @(posedge clk) begin
         bd_valid <= 1'b0;
     else if(br_taken && !inst_syscall)
         bd_valid <= 1'b1;
+    else
+        bd_valid <= 1'b0;
 end
 
 wire        condition_jump;
@@ -210,7 +214,8 @@ assign HI_LO_wen = {HI_wen,LO_wen};
 assign HI_LO_mv[1] = inst_mfhi;
 assign HI_LO_mv[0] = inst_mflo;
 
-assign ds_to_es_bus = {ex_type     ,  //173:173
+assign ds_to_es_bus = {ds_bd       ,  //174:174
+                       ex_type     ,  //173:173
                        inst_eret   ,  //170:170
                        rd_sel      ,  //169:162
                        cp0_choose  ,  //161:159
@@ -298,6 +303,9 @@ end
 always @(posedge clk) begin     //check
     if(reset) begin
         ds_valid <=1'b0;
+    end
+    else if(ex_flush) begin
+        ds_valid <= 1'b0;
     end
     else if(ds_allowin) begin
         ds_valid <= fs_to_ds_valid;
@@ -474,7 +482,7 @@ assign br_taken = (   inst_beq  &&  rs_eq_rt
                    || inst_jr
                    || inst_jalr
                   ) && ds_valid;
-                  
+
 assign br_target = (condition_jump      ) ? (fs_pc + {{14{imm[15]}}, imm[15:0], 2'b0}) :
                    (inst_jr || inst_jalr) ? rs_value :
                   /*inst_jal || inst_j*/    {fs_pc[31:28], jidx[25:0], 2'b0};

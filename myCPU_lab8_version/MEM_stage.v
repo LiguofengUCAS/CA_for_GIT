@@ -15,7 +15,11 @@ module mem_stage(
     //from data-sram
     input  [31                 :0] data_sram_rdata,
     //foward data path
-    output [`FW_DATA         -1:0] ms_to_ds_fw
+    output [`FW_DATA         -1:0] ms_to_ds_fw    ,
+    //fulsh
+    input                          ex_flush       ,
+    //exception info
+    output                         ms_ex
 );
 
 reg         ms_valid;
@@ -58,8 +62,12 @@ wire [ 2:0] cp0_choose;
 wire [ 7:0] rd_sel    ;
 wire        inst_eret;
 wire [ 2:0] ms_ex_type;
+wire        ms_bd;
 
-assign {ms_ex_type     ,  //127:127
+assign ms_ex = ms_valid && (ms_ex_type != 3'b0);
+
+assign {ms_bd          ,  //128:128
+        ms_ex_type     ,  //127:127
         inst_eret      ,  //124:124
         rd_sel         ,  //123:116
         cp0_choose     ,  //115:113
@@ -84,7 +92,9 @@ assign {ms_ex_type     ,  //127:127
 wire [31:0] mem_result;
 wire [31:0] ms_final_result;
 
-assign ms_to_ws_bus = {ms_ex_type     ,  //87:85
+assign ms_to_ws_bus = {ms_rt_value    ,  //120:89
+                       ms_bd          ,  //88:88
+                       ms_ex_type     ,  //87:85
                        inst_eret      ,  //84:84
                        rd_sel         ,  //83:76
                        cp0_choose     ,  //75:73
@@ -102,6 +112,9 @@ assign ms_allowin     = !ms_valid || ms_ready_go && ws_allowin;
 assign ms_to_ws_valid = ms_valid && ms_ready_go;
 always @(posedge clk) begin
     if (reset) begin
+        ms_valid <= 1'b0;
+    end
+    else if (ex_flush) begin
         ms_valid <= 1'b0;
     end
     else if (ms_allowin) begin

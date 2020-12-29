@@ -3,11 +3,12 @@
 
     `define BR_BUS_WD       33      //check
     `define FS_TO_DS_BUS_WD 64
-    `define DS_TO_ES_BUS_WD 170
-    `define ES_TO_MS_BUS_WD 114
-    `define MS_TO_WS_BUS_WD 84
+    `define DS_TO_ES_BUS_WD 175
+    `define ES_TO_MS_BUS_WD 129
+    `define MS_TO_WS_BUS_WD 121
     `define WS_TO_RF_BUS_WD 39
     `define FW_DATA         39      //is_mfc0, is_load, foward data and register number
+    `define WS_TO_FS_BUS_EX 33
     
     `define COUNT        8'b01001000  //$9
     `define COMPARE      8'b01011000  //$11

@@ -41,6 +41,11 @@ wire [`FW_DATA           :0] es_to_ds_fw;
 wire [`FW_DATA         -1:0] ms_to_ds_fw;  
 wire [`FW_DATA         -1:0] ws_to_ds_fw; 
 
+wire                         ex_flush ;
+wire                         ms_ex    ;
+wire                         ws_ex    ;
+wire [`WS_TO_FS_BUS_EX -1:0] ex_return;
+
 // IF stage
 if_stage if_stage(
     .clk            (clk            ),
@@ -57,7 +62,11 @@ if_stage if_stage(
     .inst_sram_wen  (inst_sram_wen  ),
     .inst_sram_addr (inst_sram_addr ),
     .inst_sram_wdata(inst_sram_wdata),
-    .inst_sram_rdata(inst_sram_rdata)
+    .inst_sram_rdata(inst_sram_rdata),
+    //flush
+    .ex_flush       (ex_flush       ),
+    .ws_ex          (ws_ex          ),
+    .ex_return      (ex_return      )
 );
 // ID stage
 id_stage id_stage(
@@ -79,7 +88,9 @@ id_stage id_stage(
     //foward data path
     .es_to_ds_fw    (es_to_ds_fw    ),
     .ms_to_ds_fw    (ms_to_ds_fw    ),    
-    .ws_to_ds_fw    (ws_to_ds_fw    )
+    .ws_to_ds_fw    (ws_to_ds_fw    ),
+    //flush
+    .ex_flush       (ex_flush       )
 );
 // EXE stage
 exe_stage exe_stage(
@@ -100,7 +111,11 @@ exe_stage exe_stage(
     .data_sram_addr (data_sram_addr ),
     .data_sram_wdata(data_sram_wdata),
     //foward data path
-    .es_to_ds_fw    (es_to_ds_fw    )
+    .es_to_ds_fw    (es_to_ds_fw    ),
+    //flush
+    .ex_flush       (ex_flush       ),
+    .ms_ex          (ms_ex          ),
+    .ws_ex          (ws_ex          )
 );
 // MEM stage
 mem_stage mem_stage(
@@ -118,7 +133,10 @@ mem_stage mem_stage(
     //from data-sram
     .data_sram_rdata(data_sram_rdata),
     //foward data path
-    .ms_to_ds_fw    (ms_to_ds_fw    )
+    .ms_to_ds_fw    (ms_to_ds_fw    ),
+    //flush
+    .ex_flush       (ex_flush       ),
+    .ms_ex          (ms_ex          )
 );
 // WB stage
 wb_stage wb_stage(
@@ -137,7 +155,11 @@ wb_stage wb_stage(
     .debug_wb_rf_wnum (debug_wb_rf_wnum ),
     .debug_wb_rf_wdata(debug_wb_rf_wdata),
     //foward data path
-    .ws_to_ds_fw      (ws_to_ds_fw      )
+    .ws_to_ds_fw      (ws_to_ds_fw      ),
+    //flush
+    .ex_flush         (ex_flush         ),
+    .ex_return        (ex_return        ),
+    .ws_ex            (ws_ex            )
 );
 
 endmodule
