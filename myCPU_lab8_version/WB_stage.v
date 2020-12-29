@@ -236,7 +236,7 @@ end
 reg [31:0] cp0_epc;
 always @(posedge clk) begin
     if(ws_ex && !cp0_status_exl)
-        cp0_epc <= ws_bd ? ws_pc/* -3'h4 */: ws_pc;
+        cp0_epc <= ws_bd ? ws_pc -3'h4 : ws_pc;
     else if(mtc0_we && cp0_waddr == `EPC)
         cp0_epc <= cp0_wdata;
 end
