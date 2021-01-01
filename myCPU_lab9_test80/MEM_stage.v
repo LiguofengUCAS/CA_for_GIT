@@ -76,7 +76,7 @@ assign ms_ex_type = (es_ex_type != 4'b0) ? es_ex_type :
                      adel_ms             ? `ADEL_MS   :
                                            4'b0       ;
 
-assign ms_ex = ms_valid && (ms_ex_type != 3'b0);
+assign ms_ex = ms_valid && (ms_ex_type != 3'b0 || inst_eret);
 
 assign ms_badvaddr = adel_ms ? ms_alu_result : es_badvaddr;
 

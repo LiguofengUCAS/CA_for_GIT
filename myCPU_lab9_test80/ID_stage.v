@@ -374,42 +374,43 @@ assign inst_xori   = op_d[6'h0e];
 assign inst_sllv   = op_d[6'h00] & func_d[6'h04] & sa_d[5'h00];
 assign inst_srav   = op_d[6'h00] & func_d[6'h07] & sa_d[5'h00];
 assign inst_srlv   = op_d[6'h00] & func_d[6'h06] & sa_d[5'h00];
-assign inst_mult   = op_d[6'h00] & func_d[6'h18] & sa_d[5'h00];
-assign inst_multu  = op_d[6'h00] & func_d[6'h19] & sa_d[5'h00];
-assign inst_div    = op_d[6'h00] & func_d[6'h1a] & sa_d[5'h00];
-assign inst_divu   = op_d[6'h00] & func_d[6'h1b] & sa_d[5'h00];
-assign inst_mfhi   = op_d[6'h00] & func_d[6'h10] & sa_d[5'h00];
-assign inst_mflo   = op_d[6'h00] & func_d[6'h12] & sa_d[5'h00];
-assign inst_mthi   = op_d[6'h00] & func_d[6'h11] & sa_d[5'h00];
-assign inst_mtlo   = op_d[6'h00] & func_d[6'h13] & sa_d[6'h00];
+assign inst_mult   = op_d[6'h00] & func_d[6'h18] & rd_d[5'h00] & sa_d[5'h00];
+assign inst_multu  = op_d[6'h00] & func_d[6'h19] & rd_d[5'h00] & sa_d[5'h00];
+assign inst_div    = op_d[6'h00] & func_d[6'h1a] & rd_d[5'h00] & sa_d[5'h00];
+assign inst_divu   = op_d[6'h00] & func_d[6'h1b] & rd_d[5'h00] & sa_d[5'h00];
+assign inst_mthi   = op_d[6'h00] & func_d[6'h11] & rt_d[5'h00] & rd_d[5'h00] & sa_d[5'h00];
+assign inst_mtlo   = op_d[6'h00] & func_d[6'h13] & rt_d[5'h00] & rd_d[5'h00] & sa_d[5'h00];
+assign inst_mfhi   = op_d[6'h00] & func_d[6'h10] & rt_d[5'h00] & rs_d[5'h00] & sa_d[5'h00];
+assign inst_mflo   = op_d[6'h00] & func_d[6'h12] & rt_d[5'h00] & rs_d[5'h00] & sa_d[5'h00];
+
 //lab7 add
 assign inst_bgez   = op_d[6'h01] & rt_d[5'h01];
-assign inst_bgtz   = op_d[6'h07];
-assign inst_blez   = op_d[6'h06];
+assign inst_bgtz   = op_d[6'h07] & rt_d[5'h00];
+assign inst_blez   = op_d[6'h06] & rt_d[5'h00];
 assign inst_bltz   = op_d[6'h01] & rt_d[5'h00];
 assign inst_j      = op_d[6'h02];
 assign inst_bltzal = op_d[6'h01] & rt_d[5'h10];
 assign inst_bgezal = op_d[6'h01] & rt_d[5'h11];
-assign inst_jalr   = op_d[6'h00] & func_d[6'h09];
+assign inst_jalr   = op_d[6'h00] & rt_d[5'h00] & func_d[6'h09];
+assign inst_sb     = op_d[6'h28];
+assign inst_sh     = op_d[6'h29];
+assign inst_swl    = op_d[6'h2a];
+assign inst_swr    = op_d[6'h2e];
 assign inst_lb     = op_d[6'h20];
 assign inst_lbu    = op_d[6'h24];
 assign inst_lh     = op_d[6'h21];
 assign inst_lhu    = op_d[6'h25];
 assign inst_lwl    = op_d[6'h22];
 assign inst_lwr    = op_d[6'h26];
-assign inst_sb     = op_d[6'h28];
-assign inst_sh     = op_d[6'h29];
-assign inst_swl    = op_d[6'h2a];
-assign inst_swr    = op_d[6'h2e];
 //lab8 add
-assign inst_mtc0    = op_d[6'h10] & rs_d[5'h04];
-assign inst_mfc0    = op_d[6'h10] & rs_d[5'h00];
-assign inst_eret    = op_d[6'h10] & func_d[6'h18];
-assign inst_syscall = op_d[6'h00] & func_d[6'h0c];
+assign inst_eret   = op_d[6'h10] & rs_d[5'h10] & func_d[6'h18] & rd_d[5'h00] & rt_d[5'h00] & sa_d[5'h00];
+assign inst_mfc0   = op_d[6'h10] & rs_d[5'h00] & sa_d[5'h00];
+assign inst_mtc0   = op_d[6'h10] & rs_d[5'h04] & sa_d[5'h00];
+assign inst_syscall= op_d[6'h00] & func_d[6'h0c];
 //lab9 add
 assign inst_break   = op_d[6'h00] & func_d[6'h0d];
 
-assign inst_remain = !inst_addu   & !inst_subu & !inst_slt  & !inst_sltu    &
+assign inst_remain = (!inst_addu   & !inst_subu & !inst_slt  & !inst_sltu    &
                      !inst_and    & !inst_or   & !inst_xor  & !inst_nor     & 
                      !inst_sll    & !inst_srl  & !inst_sra  & !inst_addiu   &
                      !inst_lui    & !inst_lw   & !inst_sw   & !inst_beq     &
@@ -424,7 +425,7 @@ assign inst_remain = !inst_addu   & !inst_subu & !inst_slt  & !inst_sltu    &
                      !inst_lh     & !inst_lhu  & !inst_lwl  & !inst_lwr     & 
                      !inst_sb     & !inst_sh   & !inst_swl  & !inst_swr     &
                      !inst_eret   & !inst_mfc0 & !inst_mtc0 & !inst_syscall &
-                     !inst_break  ;
+                     !inst_break) & ds_valid   ;
 
 assign alu_op[ 0] = inst_addu | inst_addiu  | inst_lw   | inst_sw     |
                     inst_jal  | inst_add    | inst_addi | inst_bltzal |
