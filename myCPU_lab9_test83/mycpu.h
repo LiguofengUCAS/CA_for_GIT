@@ -5,7 +5,7 @@
     `define FS_TO_DS_BUS_WD 67
     `define DS_TO_ES_BUS_WD 182
     `define ES_TO_MS_BUS_WD 165
-    `define MS_TO_WS_BUS_WD 157
+    `define MS_TO_WS_BUS_WD 157 
     `define WS_TO_RF_BUS_WD 39
     `define FW_DATA         39      //is_mfc0, is_load, foward data and register number
     `define WS_TO_FS_BUS_EX 33

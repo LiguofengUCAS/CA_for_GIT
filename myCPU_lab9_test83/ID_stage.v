@@ -197,6 +197,7 @@ assign ds_ex_type = inst_remain  ? `REMAIN  :
 reg  bd_valid;
 wire ds_bd;
 
+/*
 assign ds_bd = (inst_syscall || inst_break || inst_remain) && bd_valid;
 
 always @(posedge clk) begin
@@ -207,6 +208,19 @@ always @(posedge clk) begin
     else
         bd_valid <= 1'b0;
 end
+*/
+
+assign ds_bd = bd_valid;
+
+always @(posedge clk) begin
+    if (reset)
+        bd_valid <= 1'b0;
+    else if (br_taken)
+        bd_valid <= 1'b1;
+    else
+        bd_valid <= 1'b0;
+end
+
 
 wire        condition_jump;
 assign condition_jump = inst_beq  || inst_bne  || inst_bgez   || inst_bgtz || 

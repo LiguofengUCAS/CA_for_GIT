@@ -17,7 +17,9 @@ module mycpu_top(
     output [31:0] debug_wb_pc,
     output [ 3:0] debug_wb_rf_wen,
     output [ 4:0] debug_wb_rf_wnum,
-    output [31:0] debug_wb_rf_wdata
+    output [31:0] debug_wb_rf_wdata,
+    //clk interrupt
+    input [ 5:0]  ext_int_in
 );
 reg         reset;
 always @(posedge clk) reset <= ~resetn;
@@ -159,7 +161,8 @@ wb_stage wb_stage(
     //flush
     .ex_flush         (ex_flush         ),
     .ex_return        (ex_return        ),
-    .ws_ex            (ws_ex            )
+    .ws_ex            (ws_ex            ),
+    .ext_int_in       (ext_int_in       )
 );
 
 endmodule

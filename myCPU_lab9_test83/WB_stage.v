@@ -21,7 +21,9 @@ module wb_stage(
     output                         ex_flush       ,
     output                         ws_ex          ,
     //send exception return addr to fs
-    output [`WS_TO_FS_BUS_EX -1:0] ex_return      
+    output [`WS_TO_FS_BUS_EX -1:0] ex_return      ,
+    //interrupt
+    input  [ 5:0] ext_int_in
 );
 
 reg         ws_valid;
@@ -39,25 +41,43 @@ wire [ 5:0] cp0_choose;
 wire        mtc0_we;
 wire        ws_is_mfc0;
 wire        ws_is_mtc0;
+wire        ms_bd;
 wire        ws_bd;
 wire        eret_flush;
 wire [ 4:0] ws_excode;
-wire [ 5:0] ext_int_in;
+//wire [ 5:0] ext_int_in;
 wire [ 7:0] cp0_waddr;
 wire [31:0] ms_badvaddr;
 wire [31:0] ws_badvaddr;
 wire [31:0] cp0_epc;
+wire [ 7:0] cp0_cause_ip;
+wire [ 7:0] cp0_status_im;
+wire        cp0_status_ie;
+wire        cp0_status_exl;
 wire [31:0] cp0_result;
+wire [ 3:0] ms_ex_type;
 wire [ 3:0] ws_ex_type;
 
 wire [31:0] ws_rt_value;
 wire [31:0] cp0_wdata;
 
 wire        clk_interrupt;
+wire        itr_coming;
 
 assign cp0_wdata = mtc0_we ? ws_rt_value : ms_result;
 
 assign mtc0_we = ws_valid && ws_is_mtc0 && !ws_ex;
+
+assign itr_coming = (cp0_cause_ip[7] & cp0_status_im[7])|
+                    (cp0_cause_ip[6] & cp0_status_im[6])|
+                    (cp0_cause_ip[5] & cp0_status_im[5])|
+                    (cp0_cause_ip[4] & cp0_status_im[4])|
+                    (cp0_cause_ip[3] & cp0_status_im[3])|
+                    (cp0_cause_ip[2] & cp0_status_im[2])|
+                    (cp0_cause_ip[1] & cp0_status_im[1])|
+                    (cp0_cause_ip[0] & cp0_status_im[0]);
+
+assign ws_ex_type = (cp0_status_ie && !cp0_status_exl && itr_coming) ? `INTERRUPT : ms_ex_type;
 
 assign ws_ex = (ws_ex_type != 4'b0 && ws_valid) ? 1'b1 : 1'b0;
 
@@ -77,8 +97,8 @@ assign ext_int_in = 6'b0;
 
 assign {ms_badvaddr    ,  //156:125
         ws_rt_value    ,  //124:93
-        ws_bd          ,  //92:92
-        ws_ex_type     ,  //91:88
+        ms_bd          ,  //92:92
+        ms_ex_type     ,  //91:88
         eret_flush     ,  //87:83
         cp0_waddr      ,  //86:79
         cp0_choose     ,  //78:73
@@ -90,6 +110,8 @@ assign {ms_badvaddr    ,  //156:125
         ms_result,        //63:32
         ws_pc             //31:0
        } = ms_to_ws_bus_r;
+
+assign ws_bd = ms_bd & ws_ex;
 
 assign ws_badvaddr = (ws_ex_type == `ADEL_IF) ? ws_pc :
                      (ws_ex_type == `ADEL_MS || ws_ex_type == `ADES) ? ms_badvaddr :
@@ -152,6 +174,10 @@ cp0_regs ws_cp0_regs(
     .ws_pc      (ws_pc)      ,
     .ws_badvaddr(ws_badvaddr),
     .epc        (cp0_epc)    ,
+    .cause_ip   (cp0_cause_ip),
+    .status_im  (cp0_status_im),
+    .status_ie  (cp0_status_ie),
+    .status_exl (cp0_status_exl),
     .cp0_rdata  (cp0_result)
 );
 
@@ -173,6 +199,10 @@ module cp0_regs(
     input  [31:0] ws_pc      ,
     input  [31:0] ws_badvaddr,
     output [31:0] epc        ,
+    output [ 7:0] cause_ip   ,
+    output [ 7:0] status_im  ,
+    output        status_ie  ,
+    output        status_exl ,
     output [31:0] cp0_rdata
 );
 
@@ -309,5 +339,10 @@ assign cp0_rdata = cp0_choose == 6'h01 ? cp0_status   :
 assign count_eq_compare = (cp0_count == cp0_compare);
 
 assign epc = cp0_epc;
+
+assign cause_ip = cp0_cause_ip;
+assign status_im = cp0_status_im;
+assign status_ie = cp0_status_ie;
+assign status_exl = cp0_status_exl;
 
 endmodule
