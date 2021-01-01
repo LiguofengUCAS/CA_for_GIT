@@ -210,21 +210,24 @@ always @(posedge clk) begin
 end
 */
 
+wire   jump;
 assign ds_bd = bd_valid;
 
 always @(posedge clk) begin
     if (reset)
         bd_valid <= 1'b0;
-    else if (br_taken)
+    else if (jump && ds_valid)
         bd_valid <= 1'b1;
     else
         bd_valid <= 1'b0;
 end
 
 
-wire        condition_jump;
+wire   condition_jump;
 assign condition_jump = inst_beq  || inst_bne  || inst_bgez   || inst_bgtz || 
                         inst_blez || inst_bltz || inst_bltzal || inst_bgezal;
+
+assign jump = condition_jump | inst_jal | inst_j | inst_jr | inst_jalr;
 
 assign br_bus       = {br_taken,br_target};
 assign load_op      = inst_lw  | inst_lb  | inst_lbu | inst_lh |
